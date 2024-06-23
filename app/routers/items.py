@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
-
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.templating import Jinja2Templates
 from ..dependencies import get_token_header
 
 router = APIRouter(
@@ -8,6 +8,8 @@ router = APIRouter(
     dependencies=[Depends(get_token_header)],
     responses={404: {"description": "Not found"}},
 )
+
+templates = Jinja2Templates(directory="templates")
 
 
 fake_items_db = {"plumbus": {"name": "Plumbus"}, "gun": {"name": "Portal Gun"}}
@@ -19,10 +21,14 @@ async def read_items():
 
 
 @router.get("/{item_id}")
-async def read_item(item_id: str):
+async def read_item(request: Request, item_id: str):
     if item_id not in fake_items_db:
         raise HTTPException(status_code=404, detail="Item not found")
-    return {"name": fake_items_db[item_id]["name"], "item_id": item_id}
+    return templates.TemplateResponse(
+        request=request,
+        name="item.html",
+        context={"name": fake_items_db[item_id]["name"], "id": item_id},
+    )
 
 
 @router.put(
